@@ -1,7 +1,7 @@
 import { readData } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        await handleGet(req, res);
+        handleGet(req, res);
         break;
       default:
         res.setHeader('Allow', ['GET', 'OPTIONS']);
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleGet(req, res) {
+function handleGet(req, res) {
   const { limit: queryLimit = '50', page: queryPage = '1' } = req.query;
   
   const page = parseInt(queryPage, 10);
@@ -43,7 +43,7 @@ async function handleGet(req, res) {
     return res.status(400).json({ error: 'Parameter `page` dan `limit` harus angka positif.' });
   }
 
-  const data = await readData();
+  const data = readData();
   const logs = data.audit_logs || [];
 
   // Urutkan log berdasarkan timestamp (terbaru dulu)

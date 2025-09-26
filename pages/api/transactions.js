@@ -1,7 +1,7 @@
 import { readData, writeData, generateId, addAuditLog } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,13 +18,13 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        await handleGet(req, res);
+        handleGet(req, res);
         break;
       case 'POST':
-        await handlePost(req, res, user);
+        handlePost(req, res, user);
         break;
       case 'DELETE':
-        await handleDelete(req, res, user);
+        handleDelete(req, res, user);
         break;
       default:
         res.setHeader('Allow', ['GET', 'POST', 'DELETE', 'OPTIONS']);
@@ -39,19 +39,19 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleGet(req, res) {
-  const data = await readData();
+function handleGet(req, res) {
+  const data = readData();
   res.status(200).json({ transactions: data.transactions || [] });
 }
 
-async function handlePost(req, res, user) {
+function handlePost(req, res, user) {
   const { item_id, jumlah } = req.body;
 
   if (!item_id || !jumlah || parseInt(jumlah, 10) <= 0) {
     return res.status(400).json({ error: 'ID item dan jumlah (lebih dari 0) harus valid.' });
   }
 
-  const data = await readData();
+  const data = readData();
   const itemIndex = data.items.findIndex(item => item.id === parseInt(item_id, 10));
 
   if (itemIndex === -1) {
@@ -88,8 +88,8 @@ async function handlePost(req, res, user) {
 
   data.transactions.push(newTransaction);
 
-  if (await writeData(data)) {
-    await addAuditLog('CREATE_TRANSACTION', user.username, `Transaksi: ${item.platform} x${saleAmount}`, item.id, newTransaction.id);
+  if (writeData(data)) {
+    addAuditLog('CREATE_TRANSACTION', user.username, `Transaksi: ${item.platform} x${saleAmount}`, item.id, newTransaction.id);
     res.status(201).json({ 
       message: 'Transaksi berhasil dicatat.', 
       transaction: newTransaction,
@@ -102,7 +102,7 @@ async function handlePost(req, res, user) {
   }
 }
 
-async function handleDelete(req, res, user) {
+function handleDelete(req, res, user) {
   const { id } = req.query;
 
   if (!id) {
@@ -110,7 +110,7 @@ async function handleDelete(req, res, user) {
   }
 
   const transactionId = parseInt(id, 10);
-  const data = await readData();
+  const data = readData();
   const transactionIndex = data.transactions.findIndex(t => t.id === transactionId);
 
   if (transactionIndex === -1) {
@@ -130,8 +130,8 @@ async function handleDelete(req, res, user) {
     data.items[itemIndex].updated_by = user.username; // Catat siapa yang menyebabkan pembaruan
   }
 
-  if (await writeData(data)) {
-    await addAuditLog('DELETE_TRANSACTION', user.username, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
+  if (writeData(data)) {
+    addAuditLog('DELETE_TRANSACTION', user.username, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
     res.status(200).json({ 
       message: 'Transaksi berhasil dihapus dan stok telah dikembalikan.',
       restored_item_id: itemIndex !== -1 ? data.items[itemIndex].id : null

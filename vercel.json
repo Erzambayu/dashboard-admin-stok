@@ -23,5 +23,8 @@
     }
   ],
   "cleanUrls": true,
-  "trailingSlash": false
+  "trailingSlash": false,
+  "env": {
+    "JWT_SECRET": "22d00af652fb289d766518e98846bc73ed88fac30838af645ad2a92a86c107bc"
+  }
 }

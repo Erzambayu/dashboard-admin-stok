@@ -1,7 +1,7 @@
 import { readData, writeData, generateId, addAuditLog } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,16 +18,16 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        await handleGet(req, res);
+        handleGet(req, res);
         break;
       case 'POST':
-        await handlePost(req, res, user);
+        handlePost(req, res, user);
         break;
       case 'PUT':
-        await handlePut(req, res, user);
+        handlePut(req, res, user);
         break;
       case 'DELETE':
-        await handleDelete(req, res, user);
+        handleDelete(req, res, user);
         break;
       default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
   }
 }
 
-async function handleGet(req, res) {
-  const data = await readData();
+function handleGet(req, res) {
+  const data = readData();
   const items = data.items.map(item => ({
     ...item,
     is_expired: new Date(item.expired) < new Date(),
@@ -52,14 +52,14 @@ async function handleGet(req, res) {
   res.status(200).json({ items });
 }
 
-async function handlePost(req, res, user) {
+function handlePost(req, res, user) {
   const { platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
 
   if (!platform || !tipe || stok === undefined || !harga_modal || !harga_jual || !expired) {
     return res.status(400).json({ error: 'Semua field harus diisi.' });
   }
 
-  const data = await readData();
+  const data = readData();
   const newItem = {
     id: generateId(data.items),
     platform,
@@ -75,22 +75,22 @@ async function handlePost(req, res, user) {
 
   data.items.push(newItem);
 
-  if (await writeData(data)) {
-    await addAuditLog('CREATE_ITEM', user.username, `Membuat item baru: ${platform} (${tipe})`, newItem.id);
+  if (writeData(data)) {
+    addAuditLog('CREATE_ITEM', user.username, `Membuat item baru: ${platform} (${tipe})`, newItem.id);
     res.status(201).json({ message: 'Item berhasil ditambahkan.', item: newItem });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data item.' });
   }
 }
 
-async function handlePut(req, res, user) {
+function handlePut(req, res, user) {
   const { id, platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'ID item diperlukan untuk update.' });
   }
 
-  const data = await readData();
+  const data = readData();
   const itemIndex = data.items.findIndex(item => item.id === parseInt(id, 10));
 
   if (itemIndex === -1) {
@@ -109,15 +109,15 @@ async function handlePut(req, res, user) {
 
   data.items[itemIndex] = updatedItem;
 
-  if (await writeData(data)) {
-    await addAuditLog('UPDATE_ITEM', user.username, `Memperbarui item: ${updatedItem.platform} (${updatedItem.tipe})`, updatedItem.id);
+  if (writeData(data)) {
+    addAuditLog('UPDATE_ITEM', user.username, `Memperbarui item: ${updatedItem.platform} (${updatedItem.tipe})`, updatedItem.id);
     res.status(200).json({ message: 'Item berhasil diupdate.', item: updatedItem });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data setelah update.' });
   }
 }
 
-async function handleDelete(req, res, user) {
+function handleDelete(req, res, user) {
   const { id } = req.query;
 
   if (!id) {
@@ -125,7 +125,7 @@ async function handleDelete(req, res, user) {
   }
 
   const itemId = parseInt(id, 10);
-  const data = await readData();
+  const data = readData();
   const itemIndex = data.items.findIndex(item => item.id === itemId);
 
   if (itemIndex === -1) {
@@ -145,8 +145,8 @@ async function handleDelete(req, res, user) {
     data.voucher_codes = data.voucher_codes.filter(code => code.item_id !== itemId);
   }
 
-  if (await writeData(data)) {
-    await addAuditLog('DELETE_ITEM', user.username, `Menghapus item: ${deletedItem.platform} (${deletedItem.tipe}) dan data terkait.`, itemId);
+  if (writeData(data)) {
+    addAuditLog('DELETE_ITEM', user.username, `Menghapus item: ${deletedItem.platform} (${deletedItem.tipe}) dan data terkait.`, itemId);
     res.status(200).json({ message: 'Item dan semua data terkait berhasil dihapus.' });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data setelah penghapusan.' });

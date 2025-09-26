@@ -3,7 +3,7 @@ import { verifyToken } from './auth.js';
 
 // --- MAIN HANDLER ---
 
-export default async function handler(req, res) {
+export default function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        return await handleGet(req, res);
+        return handleGet(req, res);
       default:
         res.setHeader('Allow', ['GET', 'OPTIONS']);
         return res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
 
 // --- REPORTING LOGIC ---
 
-async function handleGet(req, res) {
-  const data = await readData();
+function handleGet(req, res) {
+  const data = readData();
   const today = new Date();
 
   const report = {
