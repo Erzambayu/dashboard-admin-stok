@@ -5,9 +5,9 @@ const nextConfig = {
   compress: true,
   reactStrictMode: true,
   
-  // Performance optimizations
+  // Performance optimizations (removed optimizeCss untuk fix deployment)
   experimental: {
-    optimizeCss: true,
+    // optimizeCss: true, // Disabled - requires critters package
   },
   
   // Security headers
