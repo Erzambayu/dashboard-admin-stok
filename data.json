@@ -1,0 +1,209 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "platform": "CapCut",
+      "tipe": "akun",
+      "stok": 3,
+      "harga_modal": 15000,
+      "harga_jual": 30000,
+      "expired": "2025-10-30",
+      "created_at": "2024-09-26T10:00:00Z",
+      "updated_at": "2024-09-26T10:00:00Z",
+      "updated_by": "admin"
+    },
+    {
+      "id": 2,
+      "platform": "Netflix",
+      "tipe": "akun",
+      "stok": 2,
+      "harga_modal": 25000,
+      "harga_jual": 50000,
+      "expired": "2025-12-31",
+      "created_at": "2024-09-26T10:00:00Z",
+      "updated_at": "2024-09-26T10:00:00Z",
+      "updated_by": "admin"
+    },
+    {
+      "id": 3,
+      "platform": "Spotify",
+      "tipe": "voucher",
+      "stok": 5,
+      "harga_modal": 35000,
+      "harga_jual": 60000,
+      "expired": "2025-11-15",
+      "created_at": "2024-09-26T10:00:00Z",
+      "updated_at": "2024-09-26T10:00:00Z",
+      "updated_by": "admin"
+    },
+    {
+      "id": 4,
+      "platform": "Steam",
+      "tipe": "kode_redeem",
+      "stok": 3,
+      "harga_modal": 40000,
+      "harga_jual": 75000,
+      "expired": "2024-12-01",
+      "created_at": "2024-09-26T10:00:00Z",
+      "updated_at": "2024-09-26T10:00:00Z",
+      "updated_by": "admin"
+    }
+  ],
+  "premium_accounts": [
+    {
+      "id": 1,
+      "item_id": 1,
+      "platform": "CapCut",
+      "username": "capcut_user1@email.com",
+      "password": "pass123capcut",
+      "status": "available",
+      "notes": "Akun premium sampai Des 2025",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 2,
+      "item_id": 1,
+      "platform": "CapCut",
+      "username": "capcut_user2@gmail.com",
+      "password": "mypass456",
+      "status": "available",
+      "notes": "Fresh account",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 3,
+      "item_id": 1,
+      "platform": "CapCut",
+      "username": "capcut_pro@yahoo.com",
+      "password": "secure789",
+      "status": "available",
+      "notes": "Pro features unlocked",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 4,
+      "item_id": 2,
+      "platform": "Netflix",
+      "username": "netflix1@example.com",
+      "password": "netflixpass1",
+      "status": "available",
+      "notes": "4K Ultra HD, 4 screens",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 5,
+      "item_id": 2,
+      "platform": "Netflix",
+      "username": "netflix2@example.com",
+      "password": "netflixpass2",
+      "status": "available",
+      "notes": "Premium account",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    }
+  ],
+  "voucher_codes": [
+    {
+      "id": 1,
+      "item_id": 3,
+      "platform": "Spotify",
+      "code": "SPOT-1234-5678-ABCD",
+      "value": "3 months premium",
+      "status": "available",
+      "notes": "Spotify Premium 3 bulan",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 2,
+      "item_id": 3,
+      "platform": "Spotify",
+      "code": "SPOT-2345-6789-EFGH",
+      "value": "3 months premium",
+      "status": "available",
+      "notes": "Valid until 2025",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    },
+    {
+      "id": 3,
+      "item_id": 4,
+      "platform": "Steam",
+      "code": "STEAM-ABC123-DEF456",
+      "value": "50000 Steam Wallet",
+      "status": "available",
+      "notes": "Steam wallet 50k",
+      "created_at": "2024-09-26T10:00:00Z",
+      "sold_at": null,
+      "sold_to": null
+    }
+  ],
+  "transactions": [
+    {
+      "id": 1,
+      "item_id": 1,
+      "platform": "CapCut",
+      "tipe": "akun",
+      "jumlah": 2,
+      "harga_modal": 15000,
+      "harga_jual": 30000,
+      "total_modal": 30000,
+      "total_jual": 60000,
+      "profit": 30000,
+      "tanggal": "2024-09-25T14:30:00Z",
+      "created_by": "admin"
+    },
+    {
+      "id": 2,
+      "item_id": 2,
+      "platform": "Netflix",
+      "tipe": "akun",
+      "jumlah": 1,
+      "harga_modal": 25000,
+      "harga_jual": 50000,
+      "total_modal": 25000,
+      "total_jual": 50000,
+      "profit": 25000,
+      "tanggal": "2024-09-26T09:15:00Z",
+      "created_by": "admin"
+    }
+  ],
+  "users": [
+    {
+      "id": 1,
+      "username": "admin",
+      "password": "$2a$10$EIXrpIZdAIUIlzNWqGCOr.FJdKq/u0Rd/gFpK/rLhcPLQS.0/7p7G",
+      "role": "admin",
+      "created_at": "2024-09-26T10:00:00Z"
+    }
+  ],
+  "audit_logs": [
+    {
+      "id": 1,
+      "action": "CREATE_ITEM",
+      "item_id": 1,
+      "user": "admin",
+      "timestamp": "2024-09-26T10:00:00Z",
+      "details": "Membuat item CapCut akun"
+    },
+    {
+      "id": 2,
+      "action": "CREATE_TRANSACTION",
+      "transaction_id": 1,
+      "user": "admin",
+      "timestamp": "2024-09-25T14:30:00Z",
+      "details": "Transaksi keluar CapCut akun x2"
+    }
+  ]
+}
