@@ -1,7 +1,8 @@
-import { supabase, generateId, addAuditLog } from '../../lib/dataManager.js';
+import { supabase, generateId, addAuditLog, checkConnectionAndGetData } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
 export default async function handler(req, res) {
+  console.log(`[API/ITEMS] Received request: ${req.method}`);
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -11,13 +12,22 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Log env vars for debugging (REMOVE IN PRODUCTION)
+    console.log('SUPABASE_URL available:', !!process.env.NEXT_PUBLIC_SUPABASE_URL);
+    console.log('SERVICE_KEY available:', !!process.env.SUPABASE_SERVICE_ROLE_KEY);
+
     const user = verifyToken(req);
     if (!user) {
+      console.error('[API/ITEMS] Authentication failed.');
       return res.status(401).json({ error: 'Otentikasi gagal: token tidak valid atau tidak ada.' });
     }
 
     switch (req.method) {
       case 'GET':
+        // Menggunakan fungsi debug baru
+        console.log('[API/ITEMS] Calling checkConnectionAndGetData...');
+        await checkConnectionAndGetData();
+        // Jika berhasil, lanjutkan dengan logika GET yang sebenarnya
         await handleGet(req, res);
         break;
       case 'POST':
@@ -51,6 +61,8 @@ async function handleGet(req, res) {
   
   res.status(200).json({ items });
 }
+
+// ... (Fungsi POST, PUT, DELETE tetap sama untuk saat ini) ...
 
 async function handlePost(req, res, user) {
   const { platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
