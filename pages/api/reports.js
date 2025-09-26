@@ -1,9 +1,9 @@
-import { readData } from '../../lib/dataManager.js';
+import { supabase } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
 // --- MAIN HANDLER ---
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,34 +18,35 @@ export default function handler(req, res) {
       return res.status(401).json({ error: 'Otentikasi gagal: token tidak valid atau tidak ada.' });
     }
 
-    switch (req.method) {
-      case 'GET':
-        return handleGet(req, res);
-      default:
-        res.setHeader('Allow', ['GET', 'OPTIONS']);
-        return res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
+    if (req.method === 'GET') {
+      await handleGet(req, res);
+    } else {
+      res.setHeader('Allow', ['GET', 'OPTIONS']);
+      res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
     }
   } catch (error) {
     console.error('[API/REPORTS] Global Error:', error);
-    if (error.message.includes('Token')) {
-      return res.status(401).json({ error: error.message });
-    }
-    return res.status(500).json({ error: 'Terjadi kesalahan internal pada server.', details: error.message });
+    res.status(500).json({ error: 'Terjadi kesalahan internal pada server.', details: error.message });
   }
 }
 
 // --- REPORTING LOGIC ---
 
-function handleGet(req, res) {
-  const data = readData();
-  const today = new Date();
+async function handleGet(req, res) {
+  const { data: items, error: itemsError } = await supabase.from('items').select('*');
+  const { data: transactions, error: transactionsError } = await supabase.from('transactions').select('*');
 
+  if (itemsError || transactionsError) {
+    return res.status(500).json({ error: itemsError?.message || transactionsError?.message });
+  }
+
+  const today = new Date();
   const report = {
-    summary: calculateSummary(data),
-    alerts: generateAlerts(data.items, today),
+    summary: calculateSummary(items, transactions),
+    alerts: generateAlerts(items, today),
     charts: {
-      last_7_days: getDailyPerformance(data.transactions, today),
-      top_selling_items: getTopSellingItems(data.transactions),
+      last_7_days: getDailyPerformance(transactions, today),
+      top_selling_items: getTopSellingItems(transactions),
     },
   };
   
@@ -54,11 +55,11 @@ function handleGet(req, res) {
 
 // --- CALCULATION FUNCTIONS ---
 
-function calculateSummary(data) {
-  const totalModalTersisa = data.items.reduce((sum, item) => sum + (item.harga_modal * item.stok), 0);
-  const totalPendapatan = data.transactions.reduce((sum, t) => sum + t.total_jual, 0);
-  const totalProfit = data.transactions.reduce((sum, t) => sum + t.profit, 0);
-  const totalModalTerjual = data.transactions.reduce((sum, t) => sum + t.total_modal, 0);
+function calculateSummary(items, transactions) {
+  const totalModalTersisa = items.reduce((sum, item) => sum + (item.harga_modal * item.stok), 0);
+  const totalPendapatan = transactions.reduce((sum, t) => sum + t.total_jual, 0);
+  const totalProfit = transactions.reduce((sum, t) => sum + t.profit, 0);
+  const totalModalTerjual = transactions.reduce((sum, t) => sum + t.total_modal, 0);
 
   return {
     total_modal_tersisa: totalModalTersisa,
@@ -66,8 +67,8 @@ function calculateSummary(data) {
     total_pendapatan: totalPendapatan,
     total_profit: totalProfit,
     margin_profit: totalPendapatan > 0 ? ((totalProfit / totalPendapatan) * 100).toFixed(2) : '0.00',
-    total_items: data.items.length,
-    total_transactions: data.transactions.length,
+    total_items: items.length,
+    total_transactions: transactions.length,
   };
 }
 

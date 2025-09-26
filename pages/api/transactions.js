@@ -1,7 +1,7 @@
-import { readData, writeData, generateId, addAuditLog } from '../../lib/dataManager.js';
+import { supabase, generateId, addAuditLog } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -18,13 +18,13 @@ export default function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        handleGet(req, res);
+        await handleGet(req, res);
         break;
       case 'POST':
-        handlePost(req, res, user);
+        await handlePost(req, res, user);
         break;
       case 'DELETE':
-        handleDelete(req, res, user);
+        await handleDelete(req, res, user);
         break;
       default:
         res.setHeader('Allow', ['GET', 'POST', 'DELETE', 'OPTIONS']);
@@ -32,111 +32,124 @@ export default function handler(req, res) {
     }
   } catch (error) {
     console.error('[API/TRANSACTIONS] Global Error:', error);
-    if (error.message.includes('Token')) {
-      return res.status(401).json({ error: error.message });
-    }
     res.status(500).json({ error: 'Terjadi kesalahan internal pada server.', details: error.message });
   }
 }
 
-function handleGet(req, res) {
-  const data = readData();
-  res.status(200).json({ transactions: data.transactions || [] });
+async function handleGet(req, res) {
+  const { data, error } = await supabase.from('transactions').select('*');
+  if (error) return res.status(500).json({ error: error.message });
+  res.status(200).json({ transactions: data || [] });
 }
 
-function handlePost(req, res, user) {
+async function handlePost(req, res, user) {
   const { item_id, jumlah } = req.body;
+  const saleAmount = parseInt(jumlah, 10);
 
-  if (!item_id || !jumlah || parseInt(jumlah, 10) <= 0) {
+  if (!item_id || !saleAmount || saleAmount <= 0) {
     return res.status(400).json({ error: 'ID item dan jumlah (lebih dari 0) harus valid.' });
   }
 
-  const data = readData();
-  const itemIndex = data.items.findIndex(item => item.id === parseInt(item_id, 10));
+  // Ambil item dari DB
+  const { data: itemData, error: itemError } = await supabase
+    .from('items')
+    .select('*')
+    .eq('id', item_id)
+    .single();
 
-  if (itemIndex === -1) {
+  if (itemError || !itemData) {
     return res.status(404).json({ error: 'Item tidak ditemukan.' });
   }
 
-  const item = data.items[itemIndex];
-  const saleAmount = parseInt(jumlah, 10);
-
-  if (item.stok < saleAmount) {
-    return res.status(400).json({ error: `Stok tidak mencukupi. Sisa stok: ${item.stok}` });
+  if (itemData.stok < saleAmount) {
+    return res.status(400).json({ error: `Stok tidak mencukupi. Sisa stok: ${itemData.stok}` });
   }
 
-  // Update stok item
-  item.stok -= saleAmount;
-  item.updated_at = new Date().toISOString();
-  item.updated_by = user.username;
+  // Kurangi stok item
+  const newStock = itemData.stok - saleAmount;
+  const { error: updateError } = await supabase
+    .from('items')
+    .update({ stok: newStock, updated_at: new Date().toISOString(), updated_by: user.username })
+    .eq('id', item_id);
+
+  if (updateError) {
+    return res.status(500).json({ error: `Gagal mengupdate stok: ${updateError.message}` });
+  }
 
   // Buat record transaksi baru
   const newTransaction = {
-    id: generateId(data.transactions),
-    item_id: item.id,
-    platform: item.platform,
-    tipe: item.tipe,
+    id: await generateId('transactions'),
+    item_id: itemData.id,
+    platform: itemData.platform,
+    tipe: itemData.tipe,
     jumlah: saleAmount,
-    harga_modal: item.harga_modal,
-    harga_jual: item.harga_jual,
-    total_modal: item.harga_modal * saleAmount,
-    total_jual: item.harga_jual * saleAmount,
-    profit: (item.harga_jual - item.harga_modal) * saleAmount,
+    harga_modal: itemData.harga_modal,
+    harga_jual: itemData.harga_jual,
+    total_modal: itemData.harga_modal * saleAmount,
+    total_jual: itemData.harga_jual * saleAmount,
+    profit: (itemData.harga_jual - itemData.harga_modal) * saleAmount,
     tanggal: new Date().toISOString(),
     created_by: user.username
   };
 
-  data.transactions.push(newTransaction);
+  const { data: transactionData, error: transactionError } = await supabase
+    .from('transactions')
+    .insert(newTransaction)
+    .select();
 
-  if (writeData(data)) {
-    addAuditLog('CREATE_TRANSACTION', user.username, `Transaksi: ${item.platform} x${saleAmount}`, item.id, newTransaction.id);
-    res.status(201).json({ 
-      message: 'Transaksi berhasil dicatat.', 
-      transaction: newTransaction,
-      updated_item: item
-    });
-  } else {
-    // Jika gagal, coba kembalikan stok (rollback manual)
-    item.stok += saleAmount;
-    res.status(500).json({ error: 'Gagal menyimpan data transaksi.' });
+  if (transactionError) {
+    // Rollback stok jika gagal membuat transaksi
+    await supabase.from('items').update({ stok: itemData.stok }).eq('id', item_id);
+    return res.status(500).json({ error: `Gagal menyimpan transaksi: ${transactionError.message}` });
   }
+
+  await addAuditLog('CREATE_TRANSACTION', user, `Transaksi: ${itemData.platform} x${saleAmount}`, itemData.id, newTransaction.id);
+  res.status(201).json({ 
+    message: 'Transaksi berhasil dicatat.', 
+    transaction: transactionData[0],
+  });
 }
 
-function handleDelete(req, res, user) {
+async function handleDelete(req, res, user) {
   const { id } = req.query;
-
-  if (!id) {
-    return res.status(400).json({ error: 'ID transaksi diperlukan.' });
-  }
+  if (!id) return res.status(400).json({ error: 'ID transaksi diperlukan.' });
 
   const transactionId = parseInt(id, 10);
-  const data = readData();
-  const transactionIndex = data.transactions.findIndex(t => t.id === transactionId);
 
-  if (transactionIndex === -1) {
+  // Ambil transaksi yang akan dihapus
+  const { data: transaction, error: findError } = await supabase
+    .from('transactions')
+    .select('*')
+    .eq('id', transactionId)
+    .single();
+
+  if (findError || !transaction) {
     return res.status(404).json({ error: 'Transaksi tidak ditemukan.' });
   }
 
-  const transaction = data.transactions[transactionIndex];
-
   // Hapus transaksi
-  data.transactions.splice(transactionIndex, 1);
+  const { error: deleteError } = await supabase.from('transactions').delete().eq('id', transactionId);
+  if (deleteError) {
+    return res.status(500).json({ error: `Gagal menghapus transaksi: ${deleteError.message}` });
+  }
 
   // Kembalikan stok item terkait
-  const itemIndex = data.items.findIndex(item => item.id === transaction.item_id);
-  if (itemIndex !== -1) {
-    data.items[itemIndex].stok += transaction.jumlah;
-    data.items[itemIndex].updated_at = new Date().toISOString();
-    data.items[itemIndex].updated_by = user.username; // Catat siapa yang menyebabkan pembaruan
+  const { data: item, error: itemError } = await supabase
+    .from('items')
+    .select('stok')
+    .eq('id', transaction.item_id)
+    .single();
+
+  if (item) {
+    const newStock = item.stok + transaction.jumlah;
+    await supabase
+      .from('items')
+      .update({ stok: newStock, updated_at: new Date().toISOString(), updated_by: user.username })
+      .eq('id', transaction.item_id);
   }
 
-  if (writeData(data)) {
-    addAuditLog('DELETE_TRANSACTION', user.username, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
-    res.status(200).json({ 
-      message: 'Transaksi berhasil dihapus dan stok telah dikembalikan.',
-      restored_item_id: itemIndex !== -1 ? data.items[itemIndex].id : null
-    });
-  } else {
-    res.status(500).json({ error: 'Gagal menyimpan data setelah menghapus transaksi.' });
-  }
+  await addAuditLog('DELETE_TRANSACTION', user, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
+  res.status(200).json({ 
+    message: 'Transaksi berhasil dihapus dan stok telah dikembalikan.',
+  });
 }

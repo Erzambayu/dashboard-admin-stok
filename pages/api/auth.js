@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { readData, writeData, generateId } from '../../lib/dataManager.js';
+import { supabase, generateId } from '../../lib/dataManager.js';
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -14,7 +14,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
-
   if (req.method !== 'POST') {
     res.setHeader('Allow', ['POST', 'OPTIONS']);
     return res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
@@ -49,10 +48,9 @@ async function handleLogin(req, res) {
     return res.status(400).json({ error: 'Username dan password wajib diisi.' });
   }
 
-  const data = readData();
-  const user = data.users.find(u => u.username === username);
+  const { data: user, error } = await supabase.from('users').select('*').eq('username', username).single();
 
-  if (!user || !await bcrypt.compare(password, user.password)) {
+  if (error || !user || !await bcrypt.compare(password, user.password)) {
     return res.status(401).json({ error: 'Username atau password salah.' });
   }
 
@@ -80,46 +78,42 @@ async function handleRegister(req, res) {
     return res.status(400).json({ error: 'Username dan password baru wajib diisi.' });
   }
 
-  const data = readData();
-  if (data.users.some(u => u.username === newUsername)) {
-    return res.status(409).json({ error: 'Username sudah digunakan.' });
-  }
-
   const hashedPassword = await bcrypt.hash(newPassword, 10);
   const newUser = {
-    id: generateId(data.users),
+    id: await generateId('users'),
     username: newUsername,
     password: hashedPassword,
     role: newRole,
     created_at: new Date().toISOString(),
   };
 
-  data.users.push(newUser);
-  if (writeData(data)) {
-    return res.status(201).json({ 
-      message: 'User berhasil ditambahkan.',
-      user: { id: newUser.id, username: newUser.username, role: newUser.role },
-    });
-  } else {
-    return res.status(500).json({ error: 'Gagal menyimpan data user baru.' });
+  const { data, error } = await supabase.from('users').insert(newUser).select('id, username, role');
+
+  if (error) {
+    if (error.code === '23505') { // Unique violation
+      return res.status(409).json({ error: 'Username sudah digunakan.' });
+    }
+    return res.status(500).json({ error: `Gagal menyimpan user baru: ${error.message}` });
   }
+
+  return res.status(201).json({ 
+    message: 'User berhasil ditambahkan.',
+    user: data[0],
+  });
 }
 
 async function handleChangePassword(req, res) {
   const user = verifyToken(req);
-  if (!user) {
-    return res.status(401).json({ error: 'Otentikasi gagal.' });
-  }
+  if (!user) return res.status(401).json({ error: 'Otentikasi gagal.' });
 
   const { oldPassword, newPassword } = req.body;
   if (!oldPassword || !newPassword) {
     return res.status(400).json({ error: 'Password lama dan baru wajib diisi.' });
   }
 
-  const data = readData();
-  const userToUpdate = data.users.find(u => u.id === user.userId);
+  const { data: userToUpdate, error: findError } = await supabase.from('users').select('*').eq('id', user.userId).single();
 
-  if (!userToUpdate) {
+  if (findError || !userToUpdate) {
     return res.status(404).json({ error: 'User tidak ditemukan.' });
   }
 
@@ -127,13 +121,15 @@ async function handleChangePassword(req, res) {
     return res.status(400).json({ error: 'Password lama salah.' });
   }
 
-  userToUpdate.password = await bcrypt.hash(newPassword, 10);
+  const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
-  if (writeData(data)) {
-    return res.status(200).json({ message: 'Password berhasil diubah.' });
-  } else {
-    return res.status(500).json({ error: 'Gagal menyimpan perubahan password.' });
+  const { error: updateError } = await supabase.from('users').update({ password: hashedNewPassword }).eq('id', user.userId);
+
+  if (updateError) {
+    return res.status(500).json({ error: `Gagal menyimpan perubahan password: ${updateError.message}` });
   }
+
+  return res.status(200).json({ message: 'Password berhasil diubah.' });
 }
 
 function handleVerify(req, res) {
@@ -153,7 +149,7 @@ function verifyToken(req) {
   try {
     return jwt.verify(token, JWT_SECRET);
   } catch (error) {
-    console.error('Token verification error:', error.message);
+    // console.error('Token verification error:', error.message);
     return null;
   }
 }

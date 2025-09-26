@@ -1,7 +1,7 @@
-import { readData } from '../../lib/dataManager.js';
+import { supabase } from '../../lib/dataManager.js';
 import { verifyToken } from './auth.js';
 
-export default function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -16,50 +16,40 @@ export default function handler(req, res) {
       return res.status(401).json({ error: 'Otentikasi gagal: token tidak valid atau tidak ada.' });
     }
 
-    switch (req.method) {
-      case 'GET':
-        handleGet(req, res);
-        break;
-      default:
-        res.setHeader('Allow', ['GET', 'OPTIONS']);
-        res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
+    if (req.method === 'GET') {
+      await handleGet(req, res);
+    } else {
+      res.setHeader('Allow', ['GET', 'OPTIONS']);
+      res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
     }
   } catch (error) {
     console.error('[API/AUDIT-LOGS] Global Error:', error);
-    if (error.message.includes('Token')) {
-      return res.status(401).json({ error: error.message });
-    }
     res.status(500).json({ error: 'Terjadi kesalahan internal pada server.', details: error.message });
   }
 }
 
-function handleGet(req, res) {
+async function handleGet(req, res) {
   const { limit: queryLimit = '50', page: queryPage = '1' } = req.query;
   
-  const page = parseInt(queryPage, 10);
-  const limit = parseInt(queryLimit, 10);
+  const page = parseInt(queryPage, 10) || 1;
+  const limit = parseInt(queryLimit, 10) || 50;
+  const startIndex = (page - 1) * limit;
 
-  if (isNaN(page) || page < 1 || isNaN(limit) || limit < 1) {
-    return res.status(400).json({ error: 'Parameter `page` dan `limit` harus angka positif.' });
+  const { data, error, count } = await supabase
+    .from('audit_logs')
+    .select('*', { count: 'exact' })
+    .order('timestamp', { ascending: false })
+    .range(startIndex, startIndex + limit - 1);
+
+  if (error) {
+    return res.status(500).json({ error: error.message });
   }
 
-  const data = readData();
-  const logs = data.audit_logs || [];
-
-  // Urutkan log berdasarkan timestamp (terbaru dulu)
-  const sortedLogs = logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-
-  // Terapkan paginasi
-  const startIndex = (page - 1) * limit;
-  const endIndex = startIndex + limit;
-  const paginatedLogs = sortedLogs.slice(startIndex, endIndex);
-  const totalPages = Math.ceil(sortedLogs.length / limit);
-
   res.status(200).json({ 
-    audit_logs: paginatedLogs,
-    total: sortedLogs.length,
-    page,
-    limit,
-    total_pages: totalPages,
+    audit_logs: data || [],
+    total: count || 0,
+    page: page,
+    limit: limit,
+    total_pages: Math.ceil((count || 0) / limit),
   });
 }
