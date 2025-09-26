@@ -23,11 +23,5 @@
     }
   ],
   "cleanUrls": true,
-  "trailingSlash": false,
-  "env": {
-    "JWT_SECRET": "22d00af652fb289d766518e98846bc73ed88fac30838af645ad2a92a86c107bc",
-    "NEXT_PUBLIC_SUPABASE_URL": "https://xgtxvgitpuqaemhzhmal.supabase.co",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndHh2Z2l0cHVxYWVtaHpobmFsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTg4NjczOTgsImV4cCI6MjA3NDQ0MzM5OH0.mi-_fubxdEm6oQ6n7VyXo9UPYkY9GcEZYldF3hjRt4M",
-    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhndHh2Z2l0cHVxYWVtaHpobmFsIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc1ODg2NzM5OCwiZXhwIjoyMDc0NDQzMzk4fQ.ngc5Sxz_vYY3UfwKrqJMP2sA659ftUCcs_aSjWyI5Ss"
-  }
+  "trailingSlash": false
 }
