@@ -44,6 +44,7 @@ export default function LoginForm() {
                 id="username"
                 name="username"
                 type="text"
+                autoComplete="username"
                 required
                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                 placeholder="Username"
@@ -59,6 +60,7 @@ export default function LoginForm() {
                 id="password"
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 required
                 className="relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                 placeholder="Password"
