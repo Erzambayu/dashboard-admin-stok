@@ -108,11 +108,22 @@ export default async function handler(req, res) {
       }
 
       const deletedItem = data.items[itemIndex];
+      
+      // Also delete related premium accounts and voucher codes
+      const itemId = parseInt(id);
+      if (data.premium_accounts) {
+        data.premium_accounts = data.premium_accounts.filter(acc => acc.item_id !== itemId);
+      }
+      if (data.voucher_codes) {
+        data.voucher_codes = data.voucher_codes.filter(code => code.item_id !== itemId);
+      }
+      
+      // Remove the item
       data.items.splice(itemIndex, 1);
 
       if (writeData(data)) {
-        addAuditLog('DELETE_ITEM', user.username, `Hapus item ${deletedItem.platform} ${deletedItem.tipe}`, parseInt(id));
-        res.status(200).json({ message: 'Item berhasil dihapus' });
+        addAuditLog('DELETE_ITEM', user.username, `Hapus item ${deletedItem.platform} ${deletedItem.tipe} beserta ${deletedItem.stok} akun terkait`, parseInt(id));
+        res.status(200).json({ message: 'Item dan data terkait berhasil dihapus' });
       } else {
         res.status(500).json({ error: 'Gagal menyimpan data' });
       }
@@ -123,10 +134,14 @@ export default async function handler(req, res) {
     }
   } catch (error) {
     console.error('Items API error:', error);
+    console.error('Error stack:', error.stack);
     if (error.message === 'Token tidak ditemukan' || error.message === 'Token tidak valid') {
       res.status(401).json({ error: error.message });
     } else {
-      res.status(500).json({ error: 'Server error' });
+      res.status(500).json({ 
+        error: 'Server error',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined
+      });
     }
   }
 }
