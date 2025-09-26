@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     const user = verifyToken(req);
     
     if (req.method === 'GET') {
-      const data = readData();
+      const data = await readData();
       const items = data.items.map(item => ({
         ...item,
         is_expired: new Date(item.expired) < new Date(),
@@ -39,7 +39,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const data = readData();
+      const data = await readData();
       const newItem = {
         id: generateId(data.items),
         platform,
@@ -58,15 +58,15 @@ export default async function handler(req, res) {
       data.items.push(newItem);
       
       try {
-        const writeResult = writeData(data);
+        const writeResult = await writeData(data);
         console.log('WriteData result:', writeResult);
         
         if (writeResult) {
-          addAuditLog('CREATE_ITEM', user.username, `Membuat item ${platform} ${tipe}`, newItem.id);
+          await addAuditLog('CREATE_ITEM', user.username, `Membuat item ${platform} ${tipe}`, newItem.id);
           res.status(201).json({ message: 'Item berhasil ditambahkan', item: newItem });
         } else {
           console.error('WriteData returned false');
-          res.status(500).json({ error: 'Gagal menyimpan data ke file' });
+          res.status(500).json({ error: 'Gagal menyimpan data' });
         }
       } catch (writeError) {
         console.error('WriteData error:', writeError);
@@ -81,7 +81,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'ID item harus disertakan' });
       }
 
-      const data = readData();
+      const data = await readData();
       const itemIndex = data.items.findIndex(item => item.id === parseInt(id));
       
       if (itemIndex === -1) {
@@ -102,8 +102,8 @@ export default async function handler(req, res) {
         updated_by: user.username
       };
 
-      if (writeData(data)) {
-        addAuditLog('UPDATE_ITEM', user.username, `Update item ${data.items[itemIndex].platform} ${data.items[itemIndex].tipe}`, parseInt(id));
+      if (await writeData(data)) {
+        await addAuditLog('UPDATE_ITEM', user.username, `Update item ${data.items[itemIndex].platform} ${data.items[itemIndex].tipe}`, parseInt(id));
         res.status(200).json({ message: 'Item berhasil diupdate', item: data.items[itemIndex] });
       } else {
         res.status(500).json({ error: 'Gagal menyimpan data' });
@@ -117,7 +117,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'ID item harus disertakan' });
       }
 
-      const data = readData();
+      const data = await readData();
       const itemIndex = data.items.findIndex(item => item.id === parseInt(id));
       
       if (itemIndex === -1) {
@@ -138,8 +138,8 @@ export default async function handler(req, res) {
       // Remove the item
       data.items.splice(itemIndex, 1);
 
-      if (writeData(data)) {
-        addAuditLog('DELETE_ITEM', user.username, `Hapus item ${deletedItem.platform} ${deletedItem.tipe} beserta ${deletedItem.stok} akun terkait`, parseInt(id));
+      if (await writeData(data)) {
+        await addAuditLog('DELETE_ITEM', user.username, `Hapus item ${deletedItem.platform} ${deletedItem.tipe} beserta ${deletedItem.stok} akun terkait`, parseInt(id));
         res.status(200).json({ message: 'Item dan data terkait berhasil dihapus' });
       } else {
         res.status(500).json({ error: 'Gagal menyimpan data' });

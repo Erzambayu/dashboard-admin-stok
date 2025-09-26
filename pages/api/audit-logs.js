@@ -17,7 +17,7 @@ export default async function handler(req, res) {
     
     if (req.method === 'GET') {
       const { limit = 50, page = 1 } = req.query;
-      const data = readData();
+      const data = await readData();
       
       // Sort by timestamp descending (newest first)
       const sortedLogs = data.audit_logs.sort((a, b) => 

@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     const user = verifyToken(req);
     
     if (req.method === 'GET') {
-      const data = readData();
+      const data = await readData();
       
       // Hitung total modal dari semua item
       const totalModal = data.items.reduce((total, item) => 
