@@ -29,8 +29,14 @@ export default async function handler(req, res) {
     else if (req.method === 'POST') {
       const { platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
       
-      if (!platform || !tipe || !stok || !harga_modal || !harga_jual || !expired) {
-        return res.status(400).json({ error: 'Semua field harus diisi' });
+      console.log('POST Items - Received data:', req.body);
+      
+      if (!platform || !tipe || stok === undefined || !harga_modal || !harga_jual || !expired) {
+        console.log('Validation failed:', { platform, tipe, stok, harga_modal, harga_jual, expired });
+        return res.status(400).json({ 
+          error: 'Semua field harus diisi',
+          received: { platform, tipe, stok, harga_modal, harga_jual, expired }
+        });
       }
 
       const data = readData();
@@ -38,22 +44,33 @@ export default async function handler(req, res) {
         id: generateId(data.items),
         platform,
         tipe,
-        stok: parseInt(stok),
-        harga_modal: parseInt(harga_modal),
-        harga_jual: parseInt(harga_jual),
+        stok: parseInt(stok) || 0,
+        harga_modal: parseInt(harga_modal) || 0,
+        harga_jual: parseInt(harga_jual) || 0,
         expired,
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         updated_by: user.username
       };
+      
+      console.log('Creating new item:', newItem);
 
       data.items.push(newItem);
       
-      if (writeData(data)) {
-        addAuditLog('CREATE_ITEM', user.username, `Membuat item ${platform} ${tipe}`, newItem.id);
-        res.status(201).json({ message: 'Item berhasil ditambahkan', item: newItem });
-      } else {
-        res.status(500).json({ error: 'Gagal menyimpan data' });
+      try {
+        const writeResult = writeData(data);
+        console.log('WriteData result:', writeResult);
+        
+        if (writeResult) {
+          addAuditLog('CREATE_ITEM', user.username, `Membuat item ${platform} ${tipe}`, newItem.id);
+          res.status(201).json({ message: 'Item berhasil ditambahkan', item: newItem });
+        } else {
+          console.error('WriteData returned false');
+          res.status(500).json({ error: 'Gagal menyimpan data ke file' });
+        }
+      } catch (writeError) {
+        console.error('WriteData error:', writeError);
+        res.status(500).json({ error: 'Error writing data: ' + writeError.message });
       }
     }
     
