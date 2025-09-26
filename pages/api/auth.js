@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
-import { readData } from '../../lib/dataManager.js';
+import { readData, writeData } from '../../lib/dataManager.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
 
@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     if (action === 'login') {
       try {
-        const data = readData();
+        const data = await readData();
         const user = data.users.find(u => u.username === username);
 
         if (!user) {
@@ -69,7 +69,7 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Username dan password wajib diisi' });
         }
         
-        const data = readData();
+        const data = await readData();
         
         // Cek apakah username sudah ada
         const existingUser = data.users.find(u => u.username === newUsername);
@@ -91,8 +91,7 @@ export default async function handler(req, res) {
         
         data.users.push(newUser);
         
-        // Simpan data (implementasi tergantung dataManager)
-        // writeData(data); // Uncomment jika ada fungsi writeData
+        await writeData(data);
         
         res.status(201).json({ 
           message: 'User berhasil ditambahkan',
@@ -118,25 +117,24 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Password lama dan baru wajib diisi' });
         }
         
-        const data = readData();
-        const user = data.users.find(u => u.id === decoded.userId);
+        const data = await readData();
+        const userIndex = data.users.findIndex(u => u.id === decoded.userId);
         
-        if (!user) {
+        if (userIndex === -1) {
           return res.status(404).json({ error: 'User tidak ditemukan' });
         }
         
         // Verifikasi password lama
-        const isOldValid = await bcrypt.compare(oldPassword, user.password);
+        const isOldValid = await bcrypt.compare(oldPassword, data.users[userIndex].password);
         if (!isOldValid) {
           return res.status(400).json({ error: 'Password lama salah' });
         }
         
         // Hash password baru
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedNewPassword;
+        data.users[userIndex].password = hashedNewPassword;
         
-        // Simpan data (implementasi tergantung dataManager)
-        // writeData(data); // Uncomment jika ada fungsi writeData
+        await writeData(data);
         
         res.status(200).json({ message: 'Password berhasil diubah' });
         

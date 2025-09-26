@@ -16,7 +16,7 @@ export default async function handler(req, res) {
     const user = verifyToken(req);
     
     if (req.method === 'GET') {
-      const data = readData();
+      const data = await readData();
       res.status(200).json({ transactions: data.transactions });
     }
     
@@ -27,7 +27,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'Item ID dan jumlah harus valid' });
       }
 
-      const data = readData();
+      const data = await readData();
       const itemIndex = data.items.findIndex(item => item.id === parseInt(item_id));
       
       if (itemIndex === -1) {
@@ -63,8 +63,8 @@ export default async function handler(req, res) {
 
       data.transactions.push(newTransaction);
 
-      if (writeData(data)) {
-        addAuditLog(
+      if (await writeData(data)) {
+        await addAuditLog(
           'CREATE_TRANSACTION', 
           user.username, 
           `Transaksi keluar ${item.platform} ${item.tipe} x${jumlah}`, 
@@ -88,7 +88,7 @@ export default async function handler(req, res) {
         return res.status(400).json({ error: 'ID transaksi harus disertakan' });
       }
 
-      const data = readData();
+      const data = await readData();
       const transactionIndex = data.transactions.findIndex(t => t.id === parseInt(id));
       
       if (transactionIndex === -1) {
@@ -107,8 +107,8 @@ export default async function handler(req, res) {
 
       data.transactions.splice(transactionIndex, 1);
 
-      if (writeData(data)) {
-        addAuditLog(
+      if (await writeData(data)) {
+        await addAuditLog(
           'DELETE_TRANSACTION', 
           user.username, 
           `Hapus transaksi ${transaction.platform} ${transaction.tipe} x${transaction.jumlah}`, 

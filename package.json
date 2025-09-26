@@ -16,7 +16,8 @@
     "jsonwebtoken": "^9.0.2",
     "bcryptjs": "^2.4.3",
     "date-fns": "^2.30.0",
-    "@heroicons/react": "^2.0.18"
+    "@heroicons/react": "^2.0.18",
+    "@vercel/kv": "^1.0.1"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",
