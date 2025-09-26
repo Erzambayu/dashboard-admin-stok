@@ -65,7 +65,7 @@ CREATE TABLE public.premium_accounts (
     password TEXT,
     status TEXT,
     notes TEXT,
-    created_at TIMESTAMT_Z,
+    created_at TIMESTAMPTZ,
     sold_at TIMESTAMPTZ,
     sold_to TEXT,
     CONSTRAINT premium_accounts_pkey PRIMARY KEY (id)
