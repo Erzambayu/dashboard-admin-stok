@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import Navbar from './Navbar';
 import ItemsTable from './ItemsTable';
+import SmartItemForm from './SmartItemForm';
 import TransactionsTable from './TransactionsTable';
 import ReportsPage from './ReportsPage';
 import AuditLogsPage from './AuditLogsPage';

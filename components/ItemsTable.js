@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import ItemForm from './ItemForm';
+import SmartItemForm from './SmartItemForm';
 
 export default function ItemsTable({ items, onRefresh }) {
   const [showForm, setShowForm] = useState(false);
@@ -127,9 +127,9 @@ export default function ItemsTable({ items, onRefresh }) {
         </div>
       </div>
 
-      {/* Item Form Modal */}
+      {/* Smart Item Form Modal */}
       {showForm && (
-        <ItemForm
+        <SmartItemForm
           item={editingItem}
           onClose={handleFormClose}
         />
