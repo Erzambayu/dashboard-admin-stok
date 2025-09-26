@@ -121,6 +121,9 @@ export default function SmartItemForm({ item, onClose }) {
         stok: accounts.length // Auto-calculated stock
       };
 
+      console.log('Saving item:', itemData);
+      console.log('Accounts to save:', accounts);
+
       const itemUrl = item ? '/api/items' : '/api/items';
       const itemMethod = item ? 'PUT' : 'POST';
       const itemBody = item 
@@ -142,7 +145,10 @@ export default function SmartItemForm({ item, onClose }) {
       }
 
       const itemResult = await itemResponse.json();
-      const itemId = item ? item.id : itemResult.item.id;
+      const itemId = item ? item.id : (itemResult.item?.id || itemResult.id);
+      
+      console.log('Item saved result:', itemResult);
+      console.log('Using itemId:', itemId);
 
       // Step 2: Add all accounts/vouchers
       for (const account of accounts) {
@@ -158,7 +164,7 @@ export default function SmartItemForm({ item, onClose }) {
             notes: account.notes || ''
           };
 
-          await fetch('/api/premium-accounts', {
+          const accountResponse = await fetch('/api/premium-accounts', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -166,6 +172,11 @@ export default function SmartItemForm({ item, onClose }) {
             },
             body: JSON.stringify(accountData)
           });
+
+          if (!accountResponse.ok) {
+            const errorData = await accountResponse.json();
+            throw new Error(`Gagal menyimpan ${formData.tipe}: ${errorData.error}`);
+          }
         }
       }
 
