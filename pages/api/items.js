@@ -18,16 +18,16 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        handleGet(req, res);
+        await handleGet(req, res);
         break;
       case 'POST':
-        handlePost(req, res, user);
+        await handlePost(req, res, user);
         break;
       case 'PUT':
-        handlePut(req, res, user);
+        await handlePut(req, res, user);
         break;
       case 'DELETE':
-        handleDelete(req, res, user);
+        await handleDelete(req, res, user);
         break;
       default:
         res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS']);
@@ -42,8 +42,8 @@ export default async function handler(req, res) {
   }
 }
 
-function handleGet(req, res) {
-  const data = readData();
+async function handleGet(req, res) {
+  const data = await readData();
   const items = data.items.map(item => ({
     ...item,
     is_expired: new Date(item.expired) < new Date(),
@@ -52,14 +52,14 @@ function handleGet(req, res) {
   res.status(200).json({ items });
 }
 
-function handlePost(req, res, user) {
+async function handlePost(req, res, user) {
   const { platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
 
   if (!platform || !tipe || stok === undefined || !harga_modal || !harga_jual || !expired) {
     return res.status(400).json({ error: 'Semua field harus diisi.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const newItem = {
     id: generateId(data.items),
     platform,
@@ -75,22 +75,22 @@ function handlePost(req, res, user) {
 
   data.items.push(newItem);
 
-  if (writeData(data)) {
-    addAuditLog('CREATE_ITEM', user.username, `Membuat item baru: ${platform} (${tipe})`, newItem.id);
+  if (await writeData(data)) {
+    await addAuditLog('CREATE_ITEM', user.username, `Membuat item baru: ${platform} (${tipe})`, newItem.id);
     res.status(201).json({ message: 'Item berhasil ditambahkan.', item: newItem });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data item.' });
   }
 }
 
-function handlePut(req, res, user) {
+async function handlePut(req, res, user) {
   const { id, platform, tipe, stok, harga_modal, harga_jual, expired } = req.body;
 
   if (!id) {
     return res.status(400).json({ error: 'ID item diperlukan untuk update.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const itemIndex = data.items.findIndex(item => item.id === parseInt(id, 10));
 
   if (itemIndex === -1) {
@@ -109,15 +109,15 @@ function handlePut(req, res, user) {
 
   data.items[itemIndex] = updatedItem;
 
-  if (writeData(data)) {
-    addAuditLog('UPDATE_ITEM', user.username, `Memperbarui item: ${updatedItem.platform} (${updatedItem.tipe})`, updatedItem.id);
+  if (await writeData(data)) {
+    await addAuditLog('UPDATE_ITEM', user.username, `Memperbarui item: ${updatedItem.platform} (${updatedItem.tipe})`, updatedItem.id);
     res.status(200).json({ message: 'Item berhasil diupdate.', item: updatedItem });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data setelah update.' });
   }
 }
 
-function handleDelete(req, res, user) {
+async function handleDelete(req, res, user) {
   const { id } = req.query;
 
   if (!id) {
@@ -125,7 +125,7 @@ function handleDelete(req, res, user) {
   }
 
   const itemId = parseInt(id, 10);
-  const data = readData();
+  const data = await readData();
   const itemIndex = data.items.findIndex(item => item.id === itemId);
 
   if (itemIndex === -1) {
@@ -145,8 +145,8 @@ function handleDelete(req, res, user) {
     data.voucher_codes = data.voucher_codes.filter(code => code.item_id !== itemId);
   }
 
-  if (writeData(data)) {
-    addAuditLog('DELETE_ITEM', user.username, `Menghapus item: ${deletedItem.platform} (${deletedItem.tipe}) dan data terkait.`, itemId);
+  if (await writeData(data)) {
+    await addAuditLog('DELETE_ITEM', user.username, `Menghapus item: ${deletedItem.platform} (${deletedItem.tipe}) dan data terkait.`, itemId);
     res.status(200).json({ message: 'Item dan semua data terkait berhasil dihapus.' });
   } else {
     res.status(500).json({ error: 'Gagal menyimpan data setelah penghapusan.' });

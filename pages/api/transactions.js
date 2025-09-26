@@ -18,13 +18,13 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        handleGet(req, res);
+        await handleGet(req, res);
         break;
       case 'POST':
-        handlePost(req, res, user);
+        await handlePost(req, res, user);
         break;
       case 'DELETE':
-        handleDelete(req, res, user);
+        await handleDelete(req, res, user);
         break;
       default:
         res.setHeader('Allow', ['GET', 'POST', 'DELETE', 'OPTIONS']);
@@ -39,19 +39,19 @@ export default async function handler(req, res) {
   }
 }
 
-function handleGet(req, res) {
-  const data = readData();
+async function handleGet(req, res) {
+  const data = await readData();
   res.status(200).json({ transactions: data.transactions || [] });
 }
 
-function handlePost(req, res, user) {
+async function handlePost(req, res, user) {
   const { item_id, jumlah } = req.body;
 
   if (!item_id || !jumlah || parseInt(jumlah, 10) <= 0) {
     return res.status(400).json({ error: 'ID item dan jumlah (lebih dari 0) harus valid.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const itemIndex = data.items.findIndex(item => item.id === parseInt(item_id, 10));
 
   if (itemIndex === -1) {
@@ -88,8 +88,8 @@ function handlePost(req, res, user) {
 
   data.transactions.push(newTransaction);
 
-  if (writeData(data)) {
-    addAuditLog('CREATE_TRANSACTION', user.username, `Transaksi: ${item.platform} x${saleAmount}`, item.id, newTransaction.id);
+  if (await writeData(data)) {
+    await addAuditLog('CREATE_TRANSACTION', user.username, `Transaksi: ${item.platform} x${saleAmount}`, item.id, newTransaction.id);
     res.status(201).json({ 
       message: 'Transaksi berhasil dicatat.', 
       transaction: newTransaction,
@@ -102,7 +102,7 @@ function handlePost(req, res, user) {
   }
 }
 
-function handleDelete(req, res, user) {
+async function handleDelete(req, res, user) {
   const { id } = req.query;
 
   if (!id) {
@@ -110,7 +110,7 @@ function handleDelete(req, res, user) {
   }
 
   const transactionId = parseInt(id, 10);
-  const data = readData();
+  const data = await readData();
   const transactionIndex = data.transactions.findIndex(t => t.id === transactionId);
 
   if (transactionIndex === -1) {
@@ -130,8 +130,8 @@ function handleDelete(req, res, user) {
     data.items[itemIndex].updated_by = user.username; // Catat siapa yang menyebabkan pembaruan
   }
 
-  if (writeData(data)) {
-    addAuditLog('DELETE_TRANSACTION', user.username, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
+  if (await writeData(data)) {
+    await addAuditLog('DELETE_TRANSACTION', user.username, `Membatalkan transaksi: ${transaction.platform} x${transaction.jumlah}`, transaction.item_id, transactionId);
     res.status(200).json({ 
       message: 'Transaksi berhasil dihapus dan stok telah dikembalikan.',
       restored_item_id: itemIndex !== -1 ? data.items[itemIndex].id : null

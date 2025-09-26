@@ -20,7 +20,7 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        return handleGet(req, res);
+        return await handleGet(req, res);
       default:
         res.setHeader('Allow', ['GET', 'OPTIONS']);
         return res.status(405).json({ error: `Method ${req.method} tidak diizinkan` });
@@ -36,8 +36,8 @@ export default async function handler(req, res) {
 
 // --- REPORTING LOGIC ---
 
-function handleGet(req, res) {
-  const data = readData();
+async function handleGet(req, res) {
+  const data = await readData();
   const today = new Date();
 
   const report = {

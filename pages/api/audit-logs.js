@@ -18,7 +18,7 @@ export default async function handler(req, res) {
 
     switch (req.method) {
       case 'GET':
-        handleGet(req, res);
+        await handleGet(req, res);
         break;
       default:
         res.setHeader('Allow', ['GET', 'OPTIONS']);
@@ -33,7 +33,7 @@ export default async function handler(req, res) {
   }
 }
 
-function handleGet(req, res) {
+async function handleGet(req, res) {
   const { limit: queryLimit = '50', page: queryPage = '1' } = req.query;
   
   const page = parseInt(queryPage, 10);
@@ -43,7 +43,7 @@ function handleGet(req, res) {
     return res.status(400).json({ error: 'Parameter `page` dan `limit` harus angka positif.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const logs = data.audit_logs || [];
 
   // Urutkan log berdasarkan timestamp (terbaru dulu)

@@ -52,7 +52,7 @@ async function handleLogin(req, res) {
     return res.status(400).json({ error: 'Username dan password wajib diisi.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const user = data.users.find(u => u.username === username);
 
   if (!user || !await bcrypt.compare(password, user.password)) {
@@ -83,7 +83,7 @@ async function handleRegister(req, res) {
     return res.status(400).json({ error: 'Username dan password baru wajib diisi.' });
   }
 
-  const data = readData();
+  const data = await readData();
   if (data.users.some(u => u.username === newUsername)) {
     return res.status(409).json({ error: 'Username sudah digunakan.' });
   }
@@ -98,7 +98,7 @@ async function handleRegister(req, res) {
   };
 
   data.users.push(newUser);
-  if (writeData(data)) {
+  if (await writeData(data)) {
     return res.status(201).json({ 
       message: 'User berhasil ditambahkan.',
       user: { id: newUser.id, username: newUser.username, role: newUser.role },
@@ -119,7 +119,7 @@ async function handleChangePassword(req, res) {
     return res.status(400).json({ error: 'Password lama dan baru wajib diisi.' });
   }
 
-  const data = readData();
+  const data = await readData();
   const userToUpdate = data.users.find(u => u.id === user.userId);
 
   if (!userToUpdate) {
@@ -132,7 +132,7 @@ async function handleChangePassword(req, res) {
 
   userToUpdate.password = await bcrypt.hash(newPassword, 10);
 
-  if (writeData(data)) {
+  if (await writeData(data)) {
     return res.status(200).json({ message: 'Password berhasil diubah.' });
   } else {
     return res.status(500).json({ error: 'Gagal menyimpan perubahan password.' });
