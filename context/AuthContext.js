@@ -1,54 +1,54 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const AuthContext = createContext();
+const API_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    // Check if user is logged in
+  const verifyToken = useCallback(async () => {
     const token = localStorage.getItem('token');
-    if (token) {
-      verifyToken(token);
-    } else {
+    if (!token) {
       setLoading(false);
+      return;
     }
-  }, []);
 
-  const verifyToken = async (token) => {
     try {
-      const response = await fetch('/api/auth', {
+      const response = await fetch(`${API_URL}/auth`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ action: 'verify' })
+        body: JSON.stringify({ action: 'verify' }),
       });
 
       if (response.ok) {
         const data = await response.json();
         setUser(data.user);
       } else {
-        localStorage.removeItem('token');
+        logout(); // Token tidak valid, hapus dari local storage
       }
     } catch (error) {
-      console.error('Token verification failed:', error);
-      localStorage.removeItem('token');
+      console.error('Gagal memverifikasi token:', error);
+      logout();
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    verifyToken();
+  }, [verifyToken]);
 
   const login = async (username, password) => {
+    setLoading(true);
     try {
-      const response = await fetch('/api/auth', {
+      const response = await fetch(`${API_URL}/auth`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ action: 'login', username, password })
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'login', username, password }),
       });
 
       const data = await response.json();
@@ -58,10 +58,13 @@ export function AuthProvider({ children }) {
         setUser(data.user);
         return { success: true };
       } else {
-        return { success: false, error: data.error };
+        return { success: false, error: data.error || 'Login gagal.' };
       }
     } catch (error) {
-      return { success: false, error: 'Network error' };
+      console.error('Kesalahan jaringan saat login:', error);
+      return { success: false, error: 'Tidak dapat terhubung ke server.' };
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -76,13 +79,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      login,
-      logout,
-      loading,
-      getAuthHeader
-    }}>
+    <AuthContext.Provider value={{ user, login, logout, loading, getAuthHeader }}>
       {children}
     </AuthContext.Provider>
   );
@@ -90,8 +87,8 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
+  if (context === undefined) {
+    throw new Error('useAuth harus digunakan di dalam AuthProvider');
   }
   return context;
 }
